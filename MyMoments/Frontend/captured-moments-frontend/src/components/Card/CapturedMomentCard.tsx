@@ -1,9 +1,7 @@
-import { format } from "date-fns";
-import { enUS } from "date-fns/locale";
+
 import { FaHeart } from "react-icons/fa";
 import { GrMapLocation } from "react-icons/gr";
-
-
+import { formatDate } from "../../utils/helpers";
 
 interface CapturedMomentCardProps {
   imageUrl: string
@@ -12,6 +10,7 @@ interface CapturedMomentCardProps {
   date: string
   visitedLocation: string[]
   isFavorite: boolean
+  onHandleViewStory: () => void
   onFavoriteClick: () => Promise<void>
 }
 
@@ -22,15 +21,11 @@ export const CapturedMomentCard = ({
   date,
   visitedLocation=[],
   isFavorite,
+  onHandleViewStory,
   onFavoriteClick,
 
 }: CapturedMomentCardProps) => {
-  const formatDate = (dateString : string) : string => {
-    const date = new Date(dateString)
-
-    return format(date, 'do MMM yyyy', {locale: enUS})
-
-  }
+  
   return (
     <article
       className="border rounded-lg overflow-hidden bg-white hover:shadow-lg hover:shadow-slate-200 transition-all ease-in-out relative cursor-pointer"
@@ -39,7 +34,7 @@ export const CapturedMomentCard = ({
         src={imageUrl} 
         alt={title} 
         className="w-full h-56 object-cover rounded-lg"
-        onClick={() =>{}}
+        onClick={onHandleViewStory}
       />
 
       <button

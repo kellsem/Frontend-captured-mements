@@ -8,6 +8,23 @@ import { ToastContainer, toast } from 'react-toastify';
 import { IoMdAddCircle } from "react-icons/io";
 import Modal from 'react-modal';
 import { AddEditTravelMoments } from "./AddEditTravelMoments";
+import { ViewTravelMoment } from "./ViewTravelMoment";
+import { DateFilter } from "../../components/input/DateFilter";
+import type { DateRange } from "react-day-picker";
+import { EmptyCard } from "../../components/Card/EmptyCard";
+import imgCard  from "../../../public/images/imgSrc.png" 
+
+interface MomentProps {
+  createOn: string;
+  id: string;
+  isFavorite: boolean;
+  imageUrl: string;
+  story: string;
+  title: string;
+  userId: string;
+  visitedDate: string;
+  visitedLocation: string[];
+}
 
 interface UserProps {
   created_at: string;
@@ -16,16 +33,6 @@ interface UserProps {
   id: string;
   password: string;
   updated_at: string;
-}
-
-interface MomentProps {
-  id: string;
-  imageUrl: string;
-  title: string;
-  story: string;
-  visitedDate: string;
-  visiteLocation: string[];
-  isFavorite: boolean;
 }
 interface ModalPrps{
   isShow: boolean,
@@ -36,9 +43,16 @@ interface ModalPrps{
 export const Home = () => {
   const [userInfo, setUserInfo] = useState<UserProps | null>(null);
   const [allMoments, setAllMoments] = useState<MomentProps[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [openAddEditModal, setOpenAddEditModal] = useState<ModalPrps>({
     isShow: false,
     type: 'add',
+    data: null
+  })
+
+  const [openViewModal, setOpenViewModal ] = useState<ModalPrps>({
+    isShow: false,
+    type: 'view',
     data: null
   })
   
@@ -60,7 +74,7 @@ export const Home = () => {
     }
   };
    // Pegar momentos registrados do usuário
-    const getAllCapturedMoments = async () => {
+  const getAllCapturedMoments = async () => {
     try {
       const response = await axiosInstance.get('get-all-moments');
 
@@ -71,6 +85,7 @@ export const Home = () => {
       console.log("An unexpected error occurred. Please try again.", error)
     }
   }
+  // Função para favoritar um momento
   const upDateIsFavorit = async (moment: MomentProps) => {
     try {
      const response = await axiosInstance.put(`/favorite-moment/${moment.id}`, {
@@ -89,12 +104,65 @@ export const Home = () => {
      }
     }
   }
+   //Função de Delete de um momento
+  const handleDeleteMoment = async ( data: MomentProps | null) =>{
+     const momentId  = data?.id;
+     console.log("Deleting moment with ID:", momentId);
 
-  useEffect(() => {
-    getUserInfo();
-    getAllCapturedMoments();
-  }, []);
+      try{
+      const response = await axiosInstance.delete(`delete-moment/${momentId}`);
 
+      if(response.data){ 
+        toast.success(response.data.message);
+        setOpenViewModal((prevState)=>({...prevState, isShow: false}))
+        getAllCapturedMoments();} 
+    }catch(error){
+      console.log("An unexpected error occurred. Please try again.", error)     
+         }
+  }
+
+// Função para filtrar momentos por data selecionada
+const filterMomentsByDate = async (newSelected: DateRange | undefined) => {
+  try {
+    const startDate = newSelected?.from ? new Date(newSelected?.from).getTime().toString() : null;
+    const endDate = newSelected?.to ? new Date(newSelected?.to).getTime().toString() : null;
+    if (startDate && endDate) {
+      const response = await axiosInstance.put('registered-moment/filter', {
+        startDate,
+        endDate
+      });
+
+      if (response.data.moment) {
+        setAllMoments(response.data.moment);
+      }
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.response && error.response.data && error.response.data.message) {
+        console.log(error.response.data.message);
+      }
+    }
+  }
+};
+
+// Função para lidar com a seleção de dias no filtro de datas
+const handleDaysSelected = (newSelected: DateRange | undefined) => {
+  setDateRange(newSelected);
+  filterMomentsByDate(newSelected);
+};
+
+// Função para abrir o modal de visualização do momento
+const handleViewStory = (moment: MomentProps) => {
+  setOpenViewModal({ isShow: true, type: 'view', data: moment });
+};
+
+// useEffect para carregar as informações do usuário e os momentos registrados ao montar o componente
+useEffect(() => {
+  getUserInfo();
+  getAllCapturedMoments();
+}, []);
+
+  // Renderização do componente Home
   return (
     <>
       <Navbar userInfo={userInfo} />
@@ -111,19 +179,28 @@ export const Home = () => {
                     title={moment.title}
                     story={moment.story}
                     date={moment.visitedDate}
-                    visitedLocation={moment.visiteLocation}
+                    visitedLocation={moment.visitedLocation}
                     isFavorite={moment.isFavorite}
+                    onHandleViewStory={() => handleViewStory(moment)}
                     onFavoriteClick={() => upDateIsFavorit(moment)}
                   />
                 ))}
               </div>
             ) : (
-              <>Empty Moments</>
+              <EmptyCard 
+              imgSrc={imgCard}
+              message="No moments captured in this data were found!"
+              />
             )}
           </section>
-          <aside className="w-[320px]" />
+          <DateFilter  
+          dateRage={dateRange}
+          OnHandleDaySelected={handleDaysSelected}
+          />
         </div>
       </main>
+
+        {/* { Add & edit captured Moment } */}
        <Modal
         isOpen={openAddEditModal.isShow}
         onRequestClose={()=>{}}
@@ -136,7 +213,43 @@ export const Home = () => {
        ariaHideApp={false}
        className="model-box"
       >
-      <AddEditTravelMoments/>
+      <AddEditTravelMoments
+      type={openAddEditModal.type}
+      momentInfo={openViewModal.data}
+      onClose={()=>{
+        setOpenAddEditModal({isShow: false, type:'add', data:null})
+      }}
+      getAllMoments={()=>getAllCapturedMoments()}
+      />
+      </Modal>
+       
+         {/* { View captured Moment } */}
+       <Modal
+        isOpen={openViewModal.isShow}
+        onRequestClose={()=>{}}
+        style={{
+          overlay:{
+            backgroundColor:"rgba(0,0,0,0.2)",
+            zIndex:999,
+          }
+        }}
+       ariaHideApp={false}
+       className="model-box"
+      >
+
+      <ViewTravelMoment
+       momentInfo={openViewModal.data!}
+       onClose={()=> { 
+          setOpenViewModal((prevState)=>({...prevState, isShow: false}))
+          }}
+          onEditClick={()=>{
+          setOpenViewModal((prevState)=>({...prevState, isShow: false}))
+          setOpenAddEditModal((prevState)=>({...prevState, isShow: true, type:'edit', data: openViewModal.data}))
+          }}
+          onDeleteClick={() => handleDeleteMoment(openViewModal.data)}
+       
+
+      />
       </Modal>
 
  
