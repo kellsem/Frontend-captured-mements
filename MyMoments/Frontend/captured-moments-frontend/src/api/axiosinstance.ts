@@ -1,6 +1,6 @@
 import axios from "axios";
 export const axiosInstance = axios.create({
-  baseURL:'http://localhost:8000',
+  baseURL:'backend-captured-mements-yotb-j6lu9em4q.vercel.app',
   timeout: 15000,
   headers: {
     "Content-Type": "application/json"

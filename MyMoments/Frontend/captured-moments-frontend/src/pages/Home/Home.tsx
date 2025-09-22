@@ -11,9 +11,6 @@ import { AddEditTravelMoments } from "./AddEditTravelMoments";
 import { ViewTravelMoment } from "./ViewTravelMoment";
 import { DateFilter } from "../../components/input/DateFilter";
 import type { DateRange } from "react-day-picker";
-import { EmptyCard } from "../../components/Card/EmptyCard";
-import imgCard  from "../../../public/images/imgSrc.png" 
-
 interface MomentProps {
   createOn: string;
   id: string;
@@ -113,7 +110,7 @@ export const Home = () => {
       const response = await axiosInstance.delete(`delete-moment/${momentId}`);
 
       if(response.data){ 
-        toast.success(response.data.message);
+        toast.error(response.data.message);
         setOpenViewModal((prevState)=>({...prevState, isShow: false}))
         getAllCapturedMoments();} 
     }catch(error){
@@ -187,10 +184,7 @@ useEffect(() => {
                 ))}
               </div>
             ) : (
-              <EmptyCard 
-              imgSrc={imgCard}
-              message="No moments captured in this data were found!"
-              />
+              <>Empty Moments</>
             )}
           </section>
           <DateFilter  
@@ -265,3 +259,5 @@ useEffect(() => {
     </>
   );
 };
+
+  //here -6min 8
