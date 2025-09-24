@@ -48,42 +48,55 @@ const [error, setError] = useState<string | null>(null)
 console.log(momentInfo)
 
 // Adiciona um novo momento capturado
-const addNewCapturedMoment =async () => {
+const addNewCapturedMoment = async () => {
   try {
     let imageUrl = "";
-    //verifico se a imagem está presente
-  if(memoryImg && typeof memoryImg !== 'string'){
-      const imageUploadResponse = await uploadImage(memoryImg)
-      console.log("Image Upload Response:", imageUploadResponse)
-      //pegar a URL da imagem
-      imageUrl = typeof imageUploadResponse === "string" 
-    ? imageUploadResponse 
-    : imageUploadResponse.uploadFile || "";
- 
+    
+    if (memoryImg && typeof memoryImg !== 'string') {
+  try {
+    const imageUploadResponse = await uploadImage(memoryImg);
+    console.log("Image Upload Response:", imageUploadResponse);
+    
+    // ✅ Busca por 'uploadFile' (formato que você sempre usou)
+    if (imageUploadResponse?.uploadFile) {
+      imageUrl = imageUploadResponse.uploadFile;
+    } else if (imageUploadResponse?.imageUrl) {
+      imageUrl = imageUploadResponse.imageUrl;
+    } else if (typeof imageUploadResponse === 'string') {
+      imageUrl = imageUploadResponse;
     }
-     const response = await axiosInstance.post('/add-registered-moment',{
+    
+  } catch (uploadError) {
+    console.error("Erro no upload da imagem:", uploadError);
+  }
+}
+    const requestData = {
       title,
       story: moment,
       imageUrl: imageUrl || null,
       visitedLocation: location,
       visitedDate: visitedDate.toISOString()
-      })
-      if (response.data){
-        toast.success("Moment added successfully")
-        getAllMoments();
-        onClose();
-      }
-    }catch (error) {
-      if (axios.isAxiosError(error)){
-        if(error.response && error.response.data && error.response.data.message){
-          setError(error.response.data.message)
-        }else{
-          console.log("An error occurred while adding the moment", error)
-        }
-      }
+    };
+    
+    console.log("📤 Dados enviados:", requestData);
+    
+    const response = await axiosInstance.post('/add-registered-moment', requestData);
+    
+    if (response.data) {
+      toast.success("Moment added successfully!");
+      getAllMoments();
+      onClose();
+    }
+    
+  } catch (error) {
+    console.error("❌ Error adding moment:", error);
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.message || "Erro ao adicionar momento";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    }
   }
-
-} 
+}
 // Atualiza um momento capturado existente
 const updateCapturedMoment = async () => {
   const momentId = momentInfo?.id;
@@ -94,38 +107,38 @@ const updateCapturedMoment = async () => {
       title,
       story: moment,
       imageUrl: memoryImg || "",
-      visitedDate : visitedDate.toISOString(),
-      visitedLocation: location,
+      visitedDate: visitedDate.toISOString(),
+      visitedLocation: location,  // ← REMOVA os [ ] se tiver
     }
-    //verifico se a imagem está presente
-     if(memoryImg && typeof memoryImg !== 'string'){
-      const imageUploadResponse = await uploadImage(memoryImg)
-      //pegar a URL da imagem
-      newImageUrl = imageUploadResponse.uploadFile || "";
-    // Atualiza o campo imageUrl apenas se uma nova imagem foi carregada
-    updateMomentData = {
-     ...updateMomentData,
-      imageUrl: newImageUrl
-    }
-  }
-  const response = await axiosInstance.put(`/edit-moments/${momentId}`, updateMomentData);
-
-  if(response.data.moment){
-    toast.success("Moment updated successfully")
-    getAllMoments();
-    onClose();
-  }
     
-  }catch (error) {
+    if(memoryImg && typeof memoryImg !== 'string'){
+      const imageUploadResponse = await uploadImage(memoryImg)
+      newImageUrl = imageUploadResponse.uploadFile || "";
+      
+      updateMomentData = {
+        ...updateMomentData,
+        imageUrl: newImageUrl
+      }
+    }
+    
+    const response = await axiosInstance.put(`/edit-moments/${momentId}`, updateMomentData);
+
+    if(response.data.moment){
+      toast.success("Moment updated successfully")
+      getAllMoments();
+      onClose();
+    }
+    
+  } catch (error) {
     if (axios.isAxiosError(error)){
       if(error.response && error.response.data && error.response.data.message){
         setError(error.response.data.message)
-      }else{
+      } else {
         console.log("An error occurred while updating the moment", error)
       }
     }
   }
- }
+}
   // Função para deletar a imagem do momento
 const handleDeleteMomentImg = async () => {
   const deleteImgResponse = await axiosInstance.delete('/delete-upload', {
@@ -225,6 +238,9 @@ useEffect(()=>{
   handleMomentClear()
 },[])
 
+console.log("📍 Location no estado:", location);
+console.log("🔍 Tipo do location:", Array.isArray(location) ? "Array" : "Não é array");
+console.log("📤 Será enviado como:", location);  
   
 return(
 <section className="relative">

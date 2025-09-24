@@ -247,7 +247,7 @@ useEffect(() => {
       </Modal>
 
  
-     <button className="w-16 h-16 flex items-center justify-center rounded-full hover:bg-violet-700 ml-auto"
+     <button className="fixed bottom-6 right-6 w-16 h-16 flex items-center justify-center rounded-full  hover:bg-violet-700 ml-auto"
      onClick={()=>{
       setOpenAddEditModal({isShow: true, type:'add', data:null})}}
      >
